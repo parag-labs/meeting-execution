@@ -1,5 +1,9 @@
 # Meeting → Execution
 
+**▶ Live demo: https://parag-labs.github.io/meeting-execution/** — runs entirely in your
+browser (the engine is pure, deterministic TypeScript, so the whole demo is client-side; no
+backend, no API key).
+
 Turn a meeting transcript into **decisions, owners, deadlines, and executed actions** — not
 a summary. You paste (or stream) what was said; a model **extracts and proposes** the
 decisions and follow-up tasks; deterministic code resolves owners and deadlines, and every
@@ -31,8 +35,8 @@ Meeting → Execution draws the line in code:
   team.
 - Every action is an **external side effect**, so it **requires human approval**; anything
   **destructive** (delete/drop/cancel …) is **denied outright** by the policy gate.
-- The run is **event-sourced** and streamed over SSE, so you watch decisions and actions
-  appear live and can replay the whole thing later.
+- The run is **event-sourced** and revealed live in the UI, so you watch decisions and
+  actions appear as they happen and can replay the whole thing later.
 
 ## Demo
 
@@ -71,7 +75,7 @@ flowchart TB
     HITL -->|"approved"| PROV[("Providers<br/>GitHub / Slack / Calendar / Linear")]:::green
     DE --> LOG[("Event log")]:::green
     PROV --> LOG
-    LOG --> UI["SSE stream + replay"]:::blue
+    LOG --> UI["Live UI (client-side) + replay"]:::blue
 
     classDef blue fill:#dbeafe,stroke:#3b82f6,color:#1e3a8a;
     classDef green fill:#dcfce7,stroke:#22c55e,color:#14532d;
@@ -226,8 +230,7 @@ meeting-execution/
 │   │   ├── examples.ts         # shared example transcripts
 │   │   ├── eval-cli.ts         # `pnpm eval`
 │   │   └── __tests__/          # unit / security / evaluation tests
-│   ├── lib/store.ts            # in-memory run history
-│   └── app/                    # Next.js app router (SSE meeting stream, runs API, dashboard)
+│   └── app/                    # Next.js app router (client-side dashboard)
 ├── ARCHITECTURE.md
 ├── SECURITY.md
 ├── CONTRIBUTING.md

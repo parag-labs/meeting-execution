@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useRef, useState } from "react";
+import { run, MockExtractor, REF_DATE, type ApprovalContext } from "@/engine";
 
 interface LoggedEvent {
   seq: number;
@@ -58,26 +59,39 @@ export default function Page() {
   const [approve, setApprove] = useState(false);
   const [events, setEvents] = useState<LoggedEvent[]>([]);
   const [running, setRunning] = useState(false);
-  const esRef = useRef<EventSource | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const start = useCallback(() => {
-    esRef.current?.close();
+  const start = useCallback(async () => {
+    if (timerRef.current) clearInterval(timerRef.current);
     setEvents([]);
     setRunning(true);
 
-    const params = new URLSearchParams({ title: "Meeting", transcript, approve: approve ? "1" : "0" });
-    const es = new EventSource(`/api/meeting/stream?${params.toString()}`);
-    esRef.current = es;
+    // The engine is pure, deterministic TypeScript, so the whole run happens client-side -
+    // no backend and no API key. That is what lets this run as a static GitHub Pages demo.
+    const lines = transcript.split("\n").map((l) => l.trim()).filter(Boolean);
+    const result = await run(
+      { title: "Meeting", transcript: lines.length ? lines : ["Let's ship the new API by Friday."] },
+      {
+        extractor: new MockExtractor(),
+        refDate: REF_DATE,
+        approve: (_ctx: ApprovalContext) => approve,
+      },
+    );
 
-    es.onmessage = (msg) => setEvents((prev) => [...prev, JSON.parse(msg.data) as LoggedEvent]);
-    es.addEventListener("done", () => {
-      setRunning(false);
-      es.close();
-    });
-    es.onerror = () => {
-      setRunning(false);
-      es.close();
-    };
+    const logged = result.events.map((e) => ({ seq: e.seq, event: e.event as LoggedEvent["event"] }));
+
+    // Reveal the events one at a time for the same live feel the SSE endpoint gave.
+    let i = 0;
+    timerRef.current = setInterval(() => {
+      if (i >= logged.length) {
+        if (timerRef.current) clearInterval(timerRef.current);
+        setRunning(false);
+        return;
+      }
+      const next = logged[i];
+      if (next) setEvents((prev) => [...prev, next]);
+      i++;
+    }, 80);
   }, [transcript, approve]);
 
   const decisions = useMemo(() => events.filter((e) => e.event.type === "DecisionDetected"), [events]);
